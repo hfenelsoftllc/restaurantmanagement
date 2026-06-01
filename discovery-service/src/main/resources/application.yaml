@@ -1,0 +1,48 @@
+server:
+  port: 8761
+  address: 0.0.0.0
+
+eureka:
+  client:
+    fetch-registry: false
+    register-with-eureka: false
+  instance:
+    hostname: hfenelsoftdev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_EXPOSED_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${ACTUATOR_HEALTH_SHOW_DETAILS:always}
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: discovery-service
+      environment: ${SPRING_PROFILES_ACTIVE:${spring.profiles.default:local}}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,250ms,500ms,1s,2s,5s
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+info:
+  app:
+    name: Discovery Service
+    description: Eureka service registry for restaurant management services
+

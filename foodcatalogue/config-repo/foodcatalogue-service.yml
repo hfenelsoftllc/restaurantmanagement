@@ -1,0 +1,9 @@
+server:
+    port: 9092
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+message: "Welcome to the Restaurant Service! This service is responsible for managing restaurant information, including details such as name, location, cuisine type, and ratings. It provides endpoints for creating, updating, retrieving, and deleting restaurant records. The Restaurant Service integrates with a database to store and manage restaurant data and is designed to be scalable and efficient in handling requests related to restaurant listings."

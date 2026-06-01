@@ -1,0 +1,9 @@
+server:
+    port: 9092
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+message: "Welcome to the Authentication Service! This service is responsible for handling user authentication and authorization. It provides endpoints for user registration, login, and token management. The Authentication Service ensures that only authorized users can access protected resources in the system. It uses JWT (JSON Web Tokens) for secure token-based authentication and integrates with a user database to manage user credentials and roles."

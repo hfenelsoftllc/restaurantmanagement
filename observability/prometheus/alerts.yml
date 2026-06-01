@@ -1,0 +1,121 @@
+groups:
+  - name: restaurant-platform-alerts
+    rules:
+      - alert: SpringServiceDown
+        expr: up{job=~"spring-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service down: {{ $labels.job }}"
+          description: "The {{ $labels.job }} target has been unreachable for more than 1 minute."
+
+      - alert: HighHttp5xxErrorRateWarning
+        expr: |
+          100 * sum(rate(http_server_requests_seconds_count{job=~"spring-.*",status=~"5.."}[5m])) by (application)
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count{job=~"spring-.*"}[5m])) by (application), 0.001) > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: reliability
+          benchmark: "5xx > 1% for 10m"
+        annotations:
+          summary: "Elevated 5xx error rate on {{ $labels.application }}"
+          description: "The 5xx response rate exceeded 1% for 10 minutes, which is above a common early-warning SRE threshold."
+
+      - alert: HighHttp5xxErrorRateCritical
+        expr: |
+          100 * sum(rate(http_server_requests_seconds_count{job=~"spring-.*",status=~"5.."}[5m])) by (application)
+          /
+          clamp_min(sum(rate(http_server_requests_seconds_count{job=~"spring-.*"}[5m])) by (application), 0.001) > 5
+        for: 5m
+        labels:
+          severity: critical
+          category: reliability
+          benchmark: "5xx > 5% for 5m"
+        annotations:
+          summary: "Critical 5xx error rate on {{ $labels.application }}"
+          description: "The 5xx response rate exceeded 5% for 5 minutes."
+
+      - alert: HighP95LatencyWarning
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_requests_seconds_bucket{job=~"spring-.*"}[5m])) by (le, application)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+          benchmark: "p95 latency > 500ms"
+        annotations:
+          summary: "High p95 latency on {{ $labels.application }}"
+          description: "The p95 latency stayed above 500ms for 10 minutes, which is a typical warning threshold for interactive APIs."
+
+      - alert: HighP95LatencyCritical
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_requests_seconds_bucket{job=~"spring-.*"}[5m])) by (le, application)
+          ) > 1
+        for: 5m
+        labels:
+          severity: critical
+          category: performance
+          benchmark: "p95 latency > 1s"
+        annotations:
+          summary: "Critical p95 latency on {{ $labels.application }}"
+          description: "The p95 latency stayed above 1 second for 5 minutes."
+
+      - alert: HighJvmHeapUsageWarning
+        expr: |
+          100 * sum(jvm_memory_used_bytes{job=~"spring-.*",area="heap"}) by (application)
+          /
+          clamp_min(sum(jvm_memory_max_bytes{job=~"spring-.*",area="heap"}) by (application), 1) > 75
+        for: 10m
+        labels:
+          severity: warning
+          category: capacity
+          benchmark: "heap > 75%"
+        annotations:
+          summary: "JVM heap usage warning on {{ $labels.application }}"
+          description: "Heap usage exceeded 75% for 10 minutes."
+
+      - alert: HighJvmHeapUsageCritical
+        expr: |
+          100 * sum(jvm_memory_used_bytes{job=~"spring-.*",area="heap"}) by (application)
+          /
+          clamp_min(sum(jvm_memory_max_bytes{job=~"spring-.*",area="heap"}) by (application), 1) > 90
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          benchmark: "heap > 90%"
+        annotations:
+          summary: "JVM heap usage critical on {{ $labels.application }}"
+          description: "Heap usage exceeded 90% for 5 minutes."
+
+      - alert: HighCpuUsageWarning
+        expr: 100 * system_cpu_usage{job=~"spring-.*"} > 70
+        for: 10m
+        labels:
+          severity: warning
+          category: capacity
+          benchmark: "cpu > 70%"
+        annotations:
+          summary: "CPU usage warning on {{ $labels.application }}"
+          description: "Process CPU usage exceeded 70% for 10 minutes."
+
+      - alert: HighCpuUsageCritical
+        expr: 100 * system_cpu_usage{job=~"spring-.*"} > 85
+        for: 5m
+        labels:
+          severity: critical
+          category: capacity
+          benchmark: "cpu > 85%"
+        annotations:
+          summary: "CPU usage critical on {{ $labels.application }}"
+          description: "Process CPU usage exceeded 85% for 5 minutes."
+

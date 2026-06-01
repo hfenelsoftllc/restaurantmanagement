@@ -1,0 +1,120 @@
+server:
+  port: 9091
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:false}
+    register-with-eureka: ${EUREKA_REGISTER_WITH_EUREKA:false}
+    fetch-registry: ${EUREKA_FETCH_REGISTRY:false}
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 10
+    initial-instance-info-replication-interval-seconds: 10
+  instance:
+    lease-renewal-interval-in-seconds: 10
+
+spring:
+  profiles:
+    default: local
+  application:
+    name: RESTAURANT-SERVICE
+  config:
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties],optional:configserver:http://localhost:8888"
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+      token: ${SPRING_CLOUD_VAULT_TOKEN:${VAULT_ROOT_TOKEN:}}
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:restaurant_db}?createDatabaseIfNotExist=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+integration:
+  foodcatalogue:
+    base-url: ${FOOD_CATALOGUE_BASE_URL:https://FOOD-CATALOGUE-SERVICE}
+    use-load-balanced: ${FOOD_CATALOGUE_USE_LOAD_BALANCED:true}
+    resilience:
+      circuitbreaker:
+        failure-rate-threshold: ${FOOD_CATALOGUE_CB_FAILURE_RATE:50}
+        minimum-number-of-calls: ${FOOD_CATALOGUE_CB_MIN_CALLS:5}
+        sliding-window-size: ${FOOD_CATALOGUE_CB_WINDOW_SIZE:10}
+        wait-duration-in-open-state: ${FOOD_CATALOGUE_CB_WAIT_OPEN:15s}
+      retry:
+        max-attempts: ${FOOD_CATALOGUE_RETRY_MAX_ATTEMPTS:3}
+        wait-duration: ${FOOD_CATALOGUE_RETRY_WAIT:300ms}
+      bulkhead:
+        max-concurrent-calls: ${FOOD_CATALOGUE_BULKHEAD_MAX_CALLS:10}
+        max-wait-duration: ${FOOD_CATALOGUE_BULKHEAD_MAX_WAIT:100ms}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      foodCatalogue:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 15s
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 50
+  retry:
+    instances:
+      foodCatalogue:
+        max-attempts: 3
+        wait-duration: 300ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  bulkhead:
+    instances:
+      foodCatalogue:
+        max-concurrent-calls: 10
+        max-wait-duration: 100ms
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_EXPOSED_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${ACTUATOR_HEALTH_SHOW_DETAILS:always}
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:${spring.profiles.default:local}}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        http.client.requests: true
+      slo:
+        http.server.requests: 100ms,250ms,500ms,1s,2s,5s
+        http.client.requests: 100ms,250ms,500ms,1s,2s,5s
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+
