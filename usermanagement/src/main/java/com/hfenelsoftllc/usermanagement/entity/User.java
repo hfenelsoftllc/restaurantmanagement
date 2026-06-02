@@ -24,5 +24,6 @@ public class User {
     public String Email;
     public String Password;
     public String ConfirmPassword;
+    public String SessionVersion;
 
 }

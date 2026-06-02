@@ -65,13 +65,14 @@ public class FoodCatalogueClientService {
         this.bulkhead = BulkheadRegistry.of(bulkheadConfig).bulkhead("foodCatalogue");
     }
 
-    public List<FoodItemCatalogueDTO> getMenuByRestaurantId(Long restaurantId) {
+    public List<FoodItemCatalogueDTO> getMenuByRestaurantId(Long restaurantId, String authorizationHeader) {
         try {
             return circuitBreaker.executeSupplier(() ->
                     retry.executeSupplier(() ->
                             bulkhead.executeSupplier(() -> {
                                 FoodItemCatalogueDTO[] menuItems = restClient.get()
                                         .uri(foodCatalogueBaseUrl + "/food-items/restaurant/{restaurantId}", restaurantId)
+                                        .header("Authorization", authorizationHeader)
                                         .retrieve()
                                         .body(FoodItemCatalogueDTO[].class);
 

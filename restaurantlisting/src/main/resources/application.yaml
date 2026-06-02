@@ -36,6 +36,9 @@ spring:
     show-sql: true
 
 integration:
+  auth-service:
+    base-url: ${AUTH_SERVICE_BASE_URL:http://localhost:9090}
+    enabled: ${AUTH_SERVICE_VALIDATION_ENABLED:true}
   foodcatalogue:
     base-url: ${FOOD_CATALOGUE_BASE_URL:https://FOOD-CATALOGUE-SERVICE}
     use-load-balanced: ${FOOD_CATALOGUE_USE_LOAD_BALANCED:true}
@@ -117,4 +120,9 @@ springdoc:
     path: /docs
     operations-sorter: method
     tags-sorter: alpha
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:change-this-default-jwt-secret-key-change-this-default-jwt-secret-key}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
 

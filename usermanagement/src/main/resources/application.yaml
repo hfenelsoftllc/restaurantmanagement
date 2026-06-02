@@ -73,3 +73,8 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
 
+security:
+  jwt:
+    secret: ${JWT_SECRET:change-this-default-jwt-secret-key-change-this-default-jwt-secret-key}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
