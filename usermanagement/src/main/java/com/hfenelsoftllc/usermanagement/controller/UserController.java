@@ -83,9 +83,8 @@ public class UserController {
             @ApiResponse(responseCode = "503", description = "Service temporarily unavailable")
     })
     @GetMapping("/token/validate")
-    public ResponseEntity<Void> validateToken(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+    public ResponseEntity<Void> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
         userService.validateAccessToken(authorizationHeader);
         return ResponseEntity.noContent().build();
     }
 }
-

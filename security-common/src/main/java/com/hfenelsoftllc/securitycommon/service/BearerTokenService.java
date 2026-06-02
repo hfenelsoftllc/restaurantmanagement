@@ -19,7 +19,7 @@ public class BearerTokenService {
 
         String prefix = "Bearer ";
         if (!authorizationHeader.startsWith(prefix) || authorizationHeader.length() <= prefix.length()) {
-            throw new IllegalArgumentException("Authorization header must use ******");
+            throw new IllegalArgumentException("Invalid Authorization header format");
         }
 
         return authorizationHeader.substring(prefix.length()).trim();
