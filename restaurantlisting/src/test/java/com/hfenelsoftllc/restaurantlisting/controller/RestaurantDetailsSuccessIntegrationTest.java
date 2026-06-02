@@ -2,7 +2,9 @@ package com.hfenelsoftllc.restaurantlisting.controller;
 
 import com.hfenelsoftllc.restaurantlisting.entity.Restaurant;
 import com.hfenelsoftllc.restaurantlisting.repo.RestaurantRepo;
+import com.hfenelsoftllc.restaurantlisting.support.JwtTestTokenFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,11 +34,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "integration.auth-service.enabled=false",
+        "security.jwt.secret=test-jwt-secret-key-test-jwt-secret-key-123456",
+        "security.jwt.expiration-minutes=60"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class RestaurantDetailsSuccessIntegrationTest {
+
+    private static final String JWT_SECRET = "test-jwt-secret-key-test-jwt-secret-key-123456";
 
     private static final WireMockServer WIREMOCK = new WireMockServer(options().dynamicPort());
 
@@ -47,6 +54,7 @@ class RestaurantDetailsSuccessIntegrationTest {
     private RestaurantRepo restaurantRepo;
 
     private Long restaurantId;
+    private String authorizationHeader;
 
     @BeforeAll
     static void startWireMock() {
@@ -58,6 +66,11 @@ class RestaurantDetailsSuccessIntegrationTest {
     static void stopWireMock() {
         WIREMOCK.stop();
         System.clearProperty("wiremock.server.port");
+    }
+
+    @AfterEach
+    void clearWireMockRequests() {
+        WIREMOCK.resetRequests();
     }
 
     @BeforeEach
@@ -75,9 +88,16 @@ class RestaurantDetailsSuccessIntegrationTest {
         restaurant.setDescription("Restaurant used for success integration test");
 
         restaurantId = restaurantRepo.save(restaurant).getId();
+        authorizationHeader = "Bearer " + JwtTestTokenFactory.createToken(
+                JWT_SECRET,
+                restaurantId,
+                "success@example.com",
+                "session-v1"
+        );
 
         WIREMOCK.resetAll();
         WIREMOCK.stubFor(get(urlEqualTo("/food-items/restaurant/" + restaurantId))
+                .withHeader("Authorization", equalTo(authorizationHeader))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("""
@@ -98,7 +118,8 @@ class RestaurantDetailsSuccessIntegrationTest {
 
     @Test
     void shouldReturnRestaurantDetailsWithMenuWhenFoodCatalogueIsReachable() throws Exception {
-        mockMvc.perform(get("/restaurants/{id}/details", restaurantId))
+        mockMvc.perform(get("/restaurants/{id}/details", restaurantId)
+                        .header("Authorization", authorizationHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.restaurant.id").value(restaurantId))
                 .andExpect(jsonPath("$.restaurant.name").value("Success Bistro"))

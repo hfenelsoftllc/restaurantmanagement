@@ -46,6 +46,15 @@ public class GlobalExceptionHandler {
                 .body(ApiErrorResponse.of(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI()));
     }
 
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAuthenticationFailedException(
+            AuthenticationFailedException ex,
+            HttpServletRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiErrorResponse.of(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI()));
+    }
+
     @ExceptionHandler({ServiceUnavailableException.class, DataAccessException.class})
     public ResponseEntity<ApiErrorResponse> handleServiceUnavailableException(HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

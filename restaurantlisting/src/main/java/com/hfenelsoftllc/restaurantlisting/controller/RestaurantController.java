@@ -7,12 +7,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.hfenelsoftllc.restaurantlisting.service.RestaurantService;
+import com.hfenelsoftllc.restaurantlisting.service.JwtAuthenticationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,15 +25,21 @@ import java.util.List;
 @RequestMapping("/restaurants")
 public class RestaurantController {
     private final RestaurantService restaurantService;
+    private final JwtAuthenticationService jwtAuthenticationService;
 
-    public RestaurantController(RestaurantService restaurantService) {
+    public RestaurantController(RestaurantService restaurantService, JwtAuthenticationService jwtAuthenticationService) {
         this.restaurantService = restaurantService;
+        this.jwtAuthenticationService = jwtAuthenticationService;
     }
 
     @Operation(summary = "List restaurants", description = "Returns all registered restaurants")
-    @ApiResponse(responseCode = "200", description = "Restaurants retrieved successfully")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Restaurants retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token")
+    })
     @GetMapping
-    public ResponseEntity<List<RestaurantDTO>> getAllRestaurants() {
+    public ResponseEntity<List<RestaurantDTO>> getAllRestaurants(@RequestHeader("Authorization") String authorizationHeader) {
+        jwtAuthenticationService.validateAccessToken(authorizationHeader);
         return ResponseEntity.ok(restaurantService.findAllRestaurants());
     }
 
@@ -39,10 +47,15 @@ public class RestaurantController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Restaurant created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid restaurant payload"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token"),
             @ApiResponse(responseCode = "503", description = "Service temporarily unavailable")
     })
     @PostMapping
-    public ResponseEntity<RestaurantDTO> createRestaurant(@Valid @RequestBody RestaurantDTO restaurantDTO) {
+    public ResponseEntity<RestaurantDTO> createRestaurant(
+            @Valid @RequestBody RestaurantDTO restaurantDTO,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        jwtAuthenticationService.validateAccessToken(authorizationHeader);
         return ResponseEntity.status(201).body(restaurantService.addRestaurant(restaurantDTO));
     }
 
@@ -50,10 +63,15 @@ public class RestaurantController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Restaurant found"),
             @ApiResponse(responseCode = "404", description = "Restaurant not found"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token"),
             @ApiResponse(responseCode = "503", description = "Service temporarily unavailable")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<RestaurantDTO> getRestaurantById(@PathVariable Long id) {
+    public ResponseEntity<RestaurantDTO> getRestaurantById(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        jwtAuthenticationService.validateAccessToken(authorizationHeader);
         return ResponseEntity.ok(restaurantService.fetchRestaurantById(id));
     }
 
@@ -61,11 +79,16 @@ public class RestaurantController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Restaurant details retrieved successfully"),
             @ApiResponse(responseCode = "404", description = "Restaurant not found"),
+            @ApiResponse(responseCode = "401", description = "Invalid or expired token"),
             @ApiResponse(responseCode = "503", description = "Dependent service temporarily unavailable")
     })
     @GetMapping("/{id}/details")
-    public ResponseEntity<RestaurantDetailsDTO> getRestaurantDetails(@PathVariable Long id) {
-        return ResponseEntity.ok(restaurantService.fetchRestaurantDetails(id));
+    public ResponseEntity<RestaurantDetailsDTO> getRestaurantDetails(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        jwtAuthenticationService.validateAccessToken(authorizationHeader);
+        return ResponseEntity.ok(restaurantService.fetchRestaurantDetails(id, authorizationHeader));
     }
 
 }

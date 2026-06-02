@@ -9,6 +9,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>security-common</module>
         <module>discovery-service</module>
         <module>usermanagement</module>
         <module>restaurantlisting</module>

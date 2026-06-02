@@ -2,6 +2,7 @@ package com.hfenelsoftllc.restaurantlisting.controller;
 
 import com.hfenelsoftllc.restaurantlisting.entity.Restaurant;
 import com.hfenelsoftllc.restaurantlisting.repo.RestaurantRepo;
+import com.hfenelsoftllc.restaurantlisting.support.JwtTestTokenFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,11 +24,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
+        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+        "integration.auth-service.enabled=false",
+        "security.jwt.secret=test-jwt-secret-key-test-jwt-secret-key-123456",
+        "security.jwt.expiration-minutes=60"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class RestaurantDetailsFallbackIntegrationTest {
+
+    private static final String JWT_SECRET = "test-jwt-secret-key-test-jwt-secret-key-123456";
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,6 +42,7 @@ class RestaurantDetailsFallbackIntegrationTest {
     private RestaurantRepo restaurantRepo;
 
     private Long restaurantId;
+    private String authorizationHeader;
 
     @BeforeEach
     void setup() {
@@ -52,11 +59,18 @@ class RestaurantDetailsFallbackIntegrationTest {
         restaurant.setDescription("Restaurant used for fallback integration test");
 
         restaurantId = restaurantRepo.save(restaurant).getId();
+        authorizationHeader = "Bearer " + JwtTestTokenFactory.createToken(
+                JWT_SECRET,
+                restaurantId,
+                "fallback@example.com",
+                "session-v1"
+        );
     }
 
     @Test
     void shouldReturnRestaurantDetailsWithFallbackMenuWhenFoodCatalogueIsUnavailable() throws Exception {
-        mockMvc.perform(get("/restaurants/{id}/details", restaurantId))
+        mockMvc.perform(get("/restaurants/{id}/details", restaurantId)
+                        .header("Authorization", authorizationHeader))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.restaurant.id").value(restaurantId))
                 .andExpect(jsonPath("$.restaurant.name").value("Fallback Bistro"))
