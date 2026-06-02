@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: PAYMENT-SERVICE-EXTERNAL
+
+server:
+  port: 9098
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 10
+  instance:
+    lease-renewal-interval-in-seconds: 10
+
+kafka:
+  topic:
+    orders: ORDERTOPIC
+    responses: ORDER_PAYMENT_RESPONSES
+    dlq: ORDER_EVENTS_DLQ
+
+payment:
+  provider: stripe
+  processing:
+    timeout-seconds: 60
+    retry-attempts: 5
+    retry-delay-ms: 2000
+

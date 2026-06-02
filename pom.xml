@@ -9,10 +9,14 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>security-common</module>
         <module>discovery-service</module>
         <module>usermanagement</module>
         <module>restaurantlisting</module>
         <module>foodcatalogue</module>
+        <module>order-service</module>
+        <module>payment-service-internal</module>
+        <module>payment-service-external</module>
         <module>config-server</module>
     </modules>
 </project>

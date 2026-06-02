@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:order_test_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:19092}
+    security:
+      protocol: PLAINTEXT
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  cloud:
+    vault:
+      enabled: false
+
+shared:
+  jwt:
+    secret: test-secret-key-that-is-at-least-32-chars-long
+    expiration-minutes: 60
+  auth-validation:
+    url: http://localhost:9090
+    enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+kafka:
+  topic:
+    orders: ORDERTOPIC
+    dlq: ORDER_EVENTS_DLQ
+
+order:
+  message:
+    signing-enabled: true
+    expiration-minutes: 5
+
+logging:
+  level:
+    com.hfenelsoftllc.order: DEBUG
+    org.springframework.kafka: WARN
+

@@ -32,6 +32,7 @@ build/
 
 ### VS Code ###
 .vscode/
+.azure/
 
 # .env variables file
 .env
