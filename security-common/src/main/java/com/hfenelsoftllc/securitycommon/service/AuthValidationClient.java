@@ -1,35 +1,45 @@
 package com.hfenelsoftllc.securitycommon.service;
 
 import com.hfenelsoftllc.securitycommon.config.AuthValidationProperties;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
-
-import java.util.Map;
+import org.springframework.web.client.RestClientResponseException;
 
 public class AuthValidationClient {
-
     private final RestClient restClient;
-    private final AuthValidationProperties properties;
+    private final AuthValidationProperties authValidationProperties;
 
-    public AuthValidationClient(RestClient restClient, AuthValidationProperties properties) {
+    public AuthValidationClient(RestClient restClient, AuthValidationProperties authValidationProperties) {
         this.restClient = restClient;
-        this.properties = properties;
+        this.authValidationProperties = authValidationProperties;
+    }
+
+    public void validateAuthorizationHeader(String authorizationHeader) {
+        if (!authValidationProperties.isEnabled()) {
+            return;
+        }
+
+        try {
+            restClient.get()
+                    .uri(authValidationProperties.getBaseUrl() + "/users/token/validate")
+                    .header("Authorization", authorizationHeader)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (request, response) -> {
+                        throw new IllegalArgumentException("Token is invalid, expired, or rotated");
+                    })
+                    .toBodilessEntity();
+        } catch (RestClientResponseException ex) {
+            throw new IllegalArgumentException("Token is invalid, expired, or rotated");
+        }
     }
 
     public boolean isTokenValid(String bearerToken) {
-        if (!properties.isEnabled()) {
-            return true;
-        }
         try {
-            ResponseEntity<Map> response = restClient.get()
-                    .uri(properties.getUrl() + "/api/v1/auth/validate")
-                    .header("Authorization", "Bearer " + bearerToken)
-                    .retrieve()
-                    .toEntity(Map.class);
-            return response.getStatusCode().is2xxSuccessful();
-        } catch (Exception ex) {
+            String authorizationHeader = bearerToken.startsWith("Bearer ") ? bearerToken : "Bearer " + bearerToken;
+            validateAuthorizationHeader(authorizationHeader);
+            return true;
+        } catch (IllegalArgumentException ex) {
             return false;
         }
     }
 }
-

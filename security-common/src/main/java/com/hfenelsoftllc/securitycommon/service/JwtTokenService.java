@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class JwtTokenService {
-
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() { };
 
     private final ObjectMapper objectMapper;
@@ -117,4 +116,3 @@ public class JwtTokenService {
         return Long.parseLong(String.valueOf(value));
     }
 }
-

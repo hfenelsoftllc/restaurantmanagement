@@ -63,9 +63,9 @@ public class RestaurantService {
         }
     }
 
-    public RestaurantDetailsDTO fetchRestaurantDetails(Long id) {
+    public RestaurantDetailsDTO fetchRestaurantDetails(Long id, String authorizationHeader) {
         RestaurantDTO restaurant = fetchRestaurantById(id);
-        List<FoodItemCatalogueDTO> menuItems = foodCatalogueClientService.getMenuByRestaurantId(id);
+        List<FoodItemCatalogueDTO> menuItems = foodCatalogueClientService.getMenuByRestaurantId(id, authorizationHeader);
 
         String menuStatus = menuItems.isEmpty()
                 ? "Menu unavailable or empty"

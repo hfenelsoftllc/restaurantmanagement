@@ -2,18 +2,17 @@ package com.hfenelsoftllc.securitycommon.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "shared.auth-validation")
+@ConfigurationProperties(prefix = "integration.auth-service")
 public class AuthValidationProperties {
+    private String baseUrl = "http://localhost:9090";
+    private boolean enabled = true;
 
-    private String url = "http://localhost:9090";
-    private boolean enabled = false;
-
-    public String getUrl() {
-        return url;
+    public String getBaseUrl() {
+        return baseUrl;
     }
 
-    public void setUrl(String url) {
-        this.url = url;
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
     public boolean isEnabled() {
@@ -23,5 +22,12 @@ public class AuthValidationProperties {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
-}
 
+    public String getUrl() {
+        return baseUrl;
+    }
+
+    public void setUrl(String url) {
+        this.baseUrl = url;
+    }
+}

@@ -2,10 +2,9 @@ package com.hfenelsoftllc.securitycommon.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "shared.jwt")
+@ConfigurationProperties(prefix = "security.jwt")
 public class SharedJwtProperties {
-
-    private String secret = "change-me";
+    private String secret = "change-this-default-jwt-secret-key-change-this-default-jwt-secret-key";
     private long expirationMinutes = 60;
 
     public String getSecret() {
@@ -24,4 +23,3 @@ public class SharedJwtProperties {
         this.expirationMinutes = expirationMinutes;
     }
 }
-

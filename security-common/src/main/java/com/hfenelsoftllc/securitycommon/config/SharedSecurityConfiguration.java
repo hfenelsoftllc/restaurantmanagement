@@ -37,4 +37,3 @@ public class SharedSecurityConfiguration {
         return new AuthValidationClient(restClientBuilder.build(), authValidationProperties);
     }
 }
-
