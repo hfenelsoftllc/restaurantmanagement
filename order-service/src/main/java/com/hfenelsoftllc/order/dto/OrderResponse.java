@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -17,15 +17,15 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OrderResponse {
 
-    private Long orderId;
+    private String orderId; // UUID as string
     private Long userId;
     private Long restaurantId;
     private String orderStatus;
     private String paymentStatus;
     private BigDecimal totalAmount;
     private String correlationId;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private List<OrderItemResponse> items;
 
     @Data
@@ -33,7 +33,6 @@ public class OrderResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrderItemResponse {
-        private Long itemId;
         private Long foodItemId;
         private Integer quantity;
         private BigDecimal price;

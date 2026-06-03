@@ -289,7 +289,36 @@ services:
       - resto-net
 
   # ============================================
-  # Order Service (Kafka Producer)
+  # Apache Cassandra — Order Service datastore
+  # ============================================
+
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    restart: unless-stopped
+    environment:
+      CASSANDRA_CLUSTER_NAME: RestaurantCluster
+      CASSANDRA_DATACENTER: datacenter1
+      CASSANDRA_RACK: rack1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      # Tune JVM heap for development; raise in production
+      JVM_OPTS: "-Xms512M -Xmx512M"
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+    healthcheck:
+      # cqlsh is available after Cassandra is fully initialised
+      test: ["CMD-SHELL", "cqlsh -e 'DESCRIBE KEYSPACES' || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    networks:
+      - resto-net
+
+  # ============================================
+  # Order Service (Kafka Producer + Cassandra)
   # ============================================
 
   order-service:
@@ -303,18 +332,19 @@ services:
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
       EUREKA_ENABLED: "false"
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_DB: order_service_db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      # Cassandra connection
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_KEYSPACE: order_keyspace
+      CASSANDRA_DATACENTER: datacenter1
+      # Kafka connection
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
       KAFKA_SECURITY_PROTOCOL: PLAINTEXT
       ACTUATOR_EXPOSED_ENDPOINTS: health,info,metrics,prometheus
     ports:
       - "9096:9096"
     depends_on:
-      mysql:
+      cassandra:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -325,7 +355,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 60s
+      start_period: 90s
     networks:
       - resto-net
 
@@ -512,6 +542,7 @@ services:
 volumes:
   mysql-data:
   postgres-data:
+  cassandra-data:
   prometheus-data:
   grafana-data:
   alertmanager-data:

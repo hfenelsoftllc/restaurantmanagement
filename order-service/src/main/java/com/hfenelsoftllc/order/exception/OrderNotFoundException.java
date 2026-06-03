@@ -1,8 +1,7 @@
 package com.hfenelsoftllc.order.exception;
 
 public class OrderNotFoundException extends RuntimeException {
-    public OrderNotFoundException(Long orderId) {
+    public OrderNotFoundException(String orderId) {
         super("Order not found: " + orderId);
     }
 }
-
