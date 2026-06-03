@@ -8,26 +8,29 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Lightweight integration-style checks for the event payload contract.
+ * Lightweight integration-style checks for the OrderEvent payload contract.
  *
- * <p>Reason: the current workspace's Spring test classpath does not include
- * Spring Boot web test artifacts needed for full random-port integration tests.</p>
+ * <p>Verifies JSON round-trip fidelity after the Apache Cassandra migration where
+ * {@code orderId} changed from {@code Long} to {@code String} (UUID representation).</p>
  */
 class OrderKafkaIntegrationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
-    @DisplayName("OrderEvent JSON round-trip preserves expected fields")
+    @DisplayName("OrderEvent JSON round-trip — all fields preserved with UUID orderId")
     void orderEventJsonRoundTrip() throws Exception {
+        String orderId = UUID.randomUUID().toString(); // orderId is now a UUID string
+
         OrderEvent event = OrderEvent.builder()
                 .eventId("evt-1")
                 .correlationId("corr-1")
-                .orderId(100L)
+                .orderId(orderId)                       // String, not Long
                 .userId(10L)
                 .restaurantId(1L)
                 .totalAmount(BigDecimal.valueOf(25.00))
@@ -49,9 +52,29 @@ class OrderKafkaIntegrationTest {
 
         assertThat(restored.getEventId()).isEqualTo("evt-1");
         assertThat(restored.getCorrelationId()).isEqualTo("corr-1");
-        assertThat(restored.getOrderId()).isEqualTo(100L);
+        assertThat(restored.getOrderId()).isEqualTo(orderId);       // String UUID comparison
         assertThat(restored.getItems()).hasSize(1);
         assertThat(restored.getItems().get(0).getFoodItemId()).isEqualTo(5L);
         assertThat(restored.getSignatureAlgorithm()).isEqualTo("HS256");
+        assertThat(restored.getExpiresAt()).isEqualTo(1_700_000_000L);
+    }
+
+    @Test
+    @DisplayName("OrderEvent JSON — order_id field serialises as string (not numeric)")
+    void orderEventJson_orderIdIsStringNotNumeric() throws Exception {
+        String orderId = UUID.randomUUID().toString();
+        OrderEvent event = OrderEvent.builder()
+                .orderId(orderId)
+                .correlationId("corr-2")
+                .userId(1L)
+                .restaurantId(1L)
+                .totalAmount(BigDecimal.ONE)
+                .items(List.of())
+                .build();
+
+        String json = objectMapper.writeValueAsString(event);
+
+        // The JSON must contain the UUID as a quoted string, e.g. "order_id":"<uuid>"
+        assertThat(json).contains("\"order_id\":\"" + orderId + "\"");
     }
 }

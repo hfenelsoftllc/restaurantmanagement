@@ -31,7 +31,7 @@ public class OrderEvent implements Serializable {
     private String correlationId;
 
     @JsonProperty("order_id")
-    private Long orderId;
+    private String orderId; // UUID as string — Cassandra primary key
 
     @JsonProperty("user_id")
     private Long userId;

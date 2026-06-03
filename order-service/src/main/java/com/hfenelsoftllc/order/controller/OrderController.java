@@ -3,6 +3,7 @@ package com.hfenelsoftllc.order.controller;
 import com.hfenelsoftllc.order.dto.OrderRequest;
 import com.hfenelsoftllc.order.dto.OrderResponse;
 import com.hfenelsoftllc.order.dto.OrderStatusUpdateRequest;
+import com.hfenelsoftllc.order.entity.OrderEventLog;
 import com.hfenelsoftllc.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,8 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Tag(name = "Orders", description = "Order management endpoints")
@@ -33,7 +33,7 @@ public class OrderController {
     }
 
     @Operation(summary = "Create a new order",
-               description = "Persists the order and publishes a signed event to Kafka ORDERTOPIC for payment processing")
+               description = "Persists the order in Cassandra and publishes a signed event to Kafka ORDERTOPIC")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Order created successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid request payload"),
@@ -52,7 +52,7 @@ public class OrderController {
                              .body(response);
     }
 
-    @Operation(summary = "Get order by ID")
+    @Operation(summary = "Get order by UUID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Order found"),
             @ApiResponse(responseCode = "401", description = "Unauthorized"),
@@ -60,13 +60,14 @@ public class OrderController {
     })
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(
-            @PathVariable Long orderId,
+            @PathVariable UUID orderId,
             @AuthenticationPrincipal Object principal) {
 
         return ResponseEntity.ok(orderService.getOrder(orderId, resolveUserId(principal)));
     }
 
-    @Operation(summary = "List orders for the authenticated user")
+    @Operation(summary = "List orders for the authenticated user",
+               description = "Returns up to 'size' most recent orders for the user (newest first)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Orders retrieved"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
@@ -74,11 +75,9 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getUserOrders(
             @AuthenticationPrincipal Object principal,
-            @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        var pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ResponseEntity.ok(orderService.getUserOrders(resolveUserId(principal), pageable));
+        return ResponseEntity.ok(orderService.getUserOrders(resolveUserId(principal), Math.min(size, 100)));
     }
 
     @Operation(summary = "Update order status",
@@ -92,7 +91,7 @@ public class OrderController {
     })
     @PutMapping("/{orderId}/status")
     public ResponseEntity<OrderResponse> updateStatus(
-            @PathVariable Long orderId,
+            @PathVariable UUID orderId,
             @Valid @RequestBody OrderStatusUpdateRequest request,
             @AuthenticationPrincipal Object principal) {
 
@@ -108,7 +107,7 @@ public class OrderController {
     })
     @DeleteMapping("/{orderId}")
     public ResponseEntity<Void> cancelOrder(
-            @PathVariable Long orderId,
+            @PathVariable UUID orderId,
             @AuthenticationPrincipal Object principal) {
 
         orderService.cancelOrder(orderId, resolveUserId(principal));
@@ -122,11 +121,28 @@ public class OrderController {
     })
     @PutMapping("/{orderId}/payment-status")
     public ResponseEntity<Void> updatePaymentStatus(
-            @PathVariable Long orderId,
+            @PathVariable UUID orderId,
             @RequestParam String status) {
 
         orderService.updatePaymentStatus(orderId, status);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Get Kafka event log for an order",
+               description = "Returns the full append-only event timeline: PRODUCING → PRODUCED/FAILED → CONSUMED")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Event log retrieved"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "404", description = "Order not found")
+    })
+    @GetMapping("/{orderId}/events")
+    public ResponseEntity<List<OrderEventLog>> getOrderEvents(
+            @PathVariable UUID orderId,
+            @AuthenticationPrincipal Object principal) {
+
+        // Verify the caller owns this order
+        orderService.getOrder(orderId, resolveUserId(principal));
+        return ResponseEntity.ok(orderService.getOrderEventLog(orderId));
     }
 
     private Long resolveUserId(Object principal) {

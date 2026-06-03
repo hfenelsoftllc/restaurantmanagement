@@ -1,38 +1,32 @@
 package com.hfenelsoftllc.order.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.cassandra.core.mapping.UserDefinedType;
 
 import java.math.BigDecimal;
 
+/**
+ * Cassandra User Defined Type (UDT) for order line items.
+ *
+ * <p>Stored as a {@code frozen<order_item>} inside the {@code items} column of the
+ * {@code orders} and {@code orders_by_user} tables.  Because items are embedded in
+ * the parent row, there is no separate table, no join, and no foreign key — this
+ * directly eliminates the relational complexity that existed with the JPA
+ * {@code @ManyToOne} / {@code @OneToMany} mapping.</p>
+ *
+ * <p>Spring Data Cassandra automatically maps: Long→BIGINT, Integer→INT, BigDecimal→DECIMAL.</p>
+ */
 @Data
-@Entity
-@Table(name = "order_items")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@UserDefinedType("order_item")
 public class OrderItem {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long itemId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
-    @JsonIgnore
-    private Order order;
-
-    @Column(nullable = false)
     private Long foodItemId;
-
-    @Column(nullable = false)
     private Integer quantity;
-
-    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 }
-

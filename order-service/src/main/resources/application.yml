@@ -12,24 +12,25 @@ spring:
     vault:
       enabled: ${VAULT_ENABLED:false}
       token: ${SPRING_CLOUD_VAULT_TOKEN:${VAULT_ROOT_TOKEN:}}
-  datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:order_service_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      connection-timeout: 30000
-      idle-timeout: 600000
-  jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
+
+  # ============================================================
+  # Apache Cassandra (replaces MySQL + JPA)
+  # ============================================================
+  cassandra:
+    keyspace-name: ${CASSANDRA_KEYSPACE:order_keyspace}
+    contact-points: ${CASSANDRA_HOST:127.0.0.1}
+    port: ${CASSANDRA_PORT:9042}
+    local-datacenter: ${CASSANDRA_DATACENTER:datacenter1}
+    # CREATE_IF_NOT_EXISTS: auto-creates keyspace, UDTs, and tables from @Table / @UserDefinedType entities.
+    # Switch to NONE in production and manage schema with a migration tool (e.g. Cassandra Migrator).
+    schema-action: CREATE_IF_NOT_EXISTS
+    request:
+      timeout: 10s
+      consistency: LOCAL_QUORUM
+    connection:
+      connect-timeout: 10s
+      init-query-timeout: 10s
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
     security:
@@ -116,4 +117,3 @@ order:
   message:
     signing-enabled: true
     expiration-minutes: 5
-

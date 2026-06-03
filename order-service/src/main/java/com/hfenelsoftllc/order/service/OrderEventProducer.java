@@ -3,6 +3,12 @@ package com.hfenelsoftllc.order.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hfenelsoftllc.order.dto.OrderEvent;
+import com.hfenelsoftllc.order.entity.OrderEventLog;
+import com.hfenelsoftllc.order.entity.OrderEventLogKey;
+import com.hfenelsoftllc.order.dto.OrderEvent;
+import com.hfenelsoftllc.order.entity.OrderEventLog;
+import com.hfenelsoftllc.order.entity.OrderEventLogKey;
+import com.hfenelsoftllc.order.repository.OrderEventLogRepository;
 import com.hfenelsoftllc.securitycommon.config.SharedJwtProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +43,7 @@ public class OrderEventProducer {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final OrderEventLogRepository eventLogRepository;
     private final byte[] signingKey;
 
     @Value("${kafka.topic.orders:ORDERTOPIC}")
@@ -50,10 +57,11 @@ public class OrderEventProducer {
 
     public OrderEventProducer(KafkaTemplate<String, String> kafkaTemplate,
                               ObjectMapper objectMapper,
+                              OrderEventLogRepository eventLogRepository,
                               SharedJwtProperties jwtProperties) {
-        this.kafkaTemplate = kafkaTemplate;
-        this.objectMapper = objectMapper;
-        // Reuse the same secret as JWT token signing — consistent across services
+        this.kafkaTemplate      = kafkaTemplate;
+        this.objectMapper       = objectMapper;
+        this.eventLogRepository = eventLogRepository;
         this.signingKey = jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8);
     }
 
@@ -91,18 +99,27 @@ public class OrderEventProducer {
                     .setHeader("x-timestamp",    System.currentTimeMillis())
                     .build();
 
+            final String orderId       = event.getOrderId();
+            final String eventId       = event.getEventId();
+            final String correlationId = event.getCorrelationId();
+            final String payload       = json;
+
             kafkaTemplate.send(message).whenComplete((result, ex) -> {
                 if (ex == null) {
-                    log.info("Order event published. correlationId={}, eventId={}, topic={}, partition={}, offset={}",
-                            event.getCorrelationId(),
-                            event.getEventId(),
+                    log.info("Order event PRODUCED. correlationId={}, eventId={}, topic={}, partition={}, offset={}",
+                            correlationId, eventId,
                             result.getRecordMetadata().topic(),
                             result.getRecordMetadata().partition(),
                             result.getRecordMetadata().offset());
+                    writeEventLog(orderId, eventId, "ORDER_CREATED", "PRODUCED",
+                            correlationId, payload, null);
                 } else {
-                    log.error("Failed to publish order event. correlationId={}", event.getCorrelationId(), ex);
+                    log.error("Order event FAILED. correlationId={}, eventId={}", correlationId, eventId, ex);
+                    writeEventLog(orderId, eventId, "ORDER_CREATED", "FAILED",
+                            correlationId, payload, ex.getMessage());
                 }
             });
+
 
         } catch (JsonProcessingException e) {
             log.error("JSON serialisation failed for order event correlationId={}", event.getCorrelationId(), e);
@@ -132,6 +149,28 @@ public class OrderEventProducer {
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    private void writeEventLog(String orderIdStr, String eventId, String eventType,
+                                String eventStatus, String correlationId,
+                                String payload, String errorMessage) {
+        try {
+            UUID orderId = UUID.fromString(orderIdStr);
+            OrderEventLog entry = OrderEventLog.builder()
+                    .key(new OrderEventLogKey(orderId, eventId))
+                    .eventType(eventType)
+                    .eventStatus(eventStatus)
+                    .correlationId(correlationId)
+                    .payload(payload)
+                    .errorMessage(errorMessage)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            eventLogRepository.save(entry);
+        } catch (Exception logEx) {
+            log.warn("Failed to write event log for orderId={}. {}", orderIdStr, logEx.getMessage());
+        }
+    }
+
 
     /**
      * Build a canonical payload string from the event, excluding the signature field itself.

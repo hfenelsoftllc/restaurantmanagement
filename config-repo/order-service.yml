@@ -1,14 +1,11 @@
 spring:
   application:
     name: ORDER-SERVICE
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: false
+  cassandra:
+    keyspace-name: ${CASSANDRA_KEYSPACE:order_keyspace}
+    schema-action: CREATE_IF_NOT_EXISTS
+    request:
+      consistency: LOCAL_QUORUM
 
 server:
   port: 9096
@@ -35,4 +32,3 @@ order:
   rate-limiting:
     enabled: true
     orders-per-minute: 100
-
