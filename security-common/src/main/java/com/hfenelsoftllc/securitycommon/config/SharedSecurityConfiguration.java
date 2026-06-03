@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hfenelsoftllc.securitycommon.service.AuthValidationClient;
 import com.hfenelsoftllc.securitycommon.service.BearerTokenService;
 import com.hfenelsoftllc.securitycommon.service.JwtTokenService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.client.RestClient;
 
 @Configuration
@@ -37,5 +37,3 @@ public class SharedSecurityConfiguration {
         return new AuthValidationClient(restClientBuilder.build(), authValidationProperties);
     }
 }
-
-

@@ -116,4 +116,3 @@ public class JwtTokenService {
         return Long.parseLong(String.valueOf(value));
     }
 }
-

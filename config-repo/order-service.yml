@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: ORDER-SERVICE
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+
+server:
+  port: 9096
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 10
+  instance:
+    lease-renewal-interval-in-seconds: 10
+
+kafka:
+  topic:
+    orders: ORDERTOPIC
+    dlq: ORDER_EVENTS_DLQ
+    payment-responses: ORDER_PAYMENT_RESPONSES
+
+order:
+  message:
+    signing-enabled: true
+    expiration-minutes: 5
+  rate-limiting:
+    enabled: true
+    orders-per-minute: 100
+

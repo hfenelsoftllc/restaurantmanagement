@@ -1,0 +1,119 @@
+server:
+  port: 9096
+
+spring:
+  profiles:
+    default: local
+  application:
+    name: ORDER-SERVICE
+  config:
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties],optional:configserver:http://localhost:8888"
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+      token: ${SPRING_CLOUD_VAULT_TOKEN:${VAULT_ROOT_TOKEN:}}
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:order_service_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    security:
+      protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+    sasl:
+      mechanism: ${KAFKA_SASL_MECHANISM:PLAIN}
+      username: ${KAFKA_SASL_USERNAME:}
+      password: ${KAFKA_SASL_PASSWORD:}
+    producer:
+      acks: all
+      retries: 3
+      compression-type: snappy
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 10
+    initial-instance-info-replication-interval-seconds: 10
+  instance:
+    lease-renewal-interval-in-seconds: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_EXPOSED_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${ACTUATOR_HEALTH_SHOW_DETAILS:always}
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${SPRING_PROFILES_ACTIVE:${spring.profiles.default:local}}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,250ms,500ms,1s,2s,5s
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+
+# Security-common shared JWT configuration
+shared:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-vault-or-env}
+    expiration-minutes: 60
+  auth-validation:
+    url: ${AUTH_VALIDATION_URL:http://localhost:9090}
+    enabled: false
+
+# Kafka topics
+kafka:
+  topic:
+    orders: ORDERTOPIC
+    dlq: ORDER_EVENTS_DLQ
+    payment-responses: ORDER_PAYMENT_RESPONSES
+
+# Order business config
+order:
+  message:
+    signing-enabled: true
+    expiration-minutes: 5
+

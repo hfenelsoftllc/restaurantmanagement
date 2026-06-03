@@ -1,0 +1,61 @@
+server:
+  port: 9098
+
+spring:
+  profiles:
+    default: local
+  application:
+    name: PAYMENT-SERVICE-EXTERNAL
+  config:
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties],optional:configserver:http://localhost:8888"
+  cloud:
+    vault:
+      enabled: ${VAULT_ENABLED:false}
+      token: ${SPRING_CLOUD_VAULT_TOKEN:${VAULT_ROOT_TOKEN:}}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:payment-service-external-group}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+eureka:
+  client:
+    enabled: ${EUREKA_ENABLED:true}
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+  instance:
+    lease-renewal-interval-in-seconds: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_EXPOSED_ENDPOINTS:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${ACTUATOR_HEALTH_SHOW_DETAILS:always}
+
+kafka:
+  topic:
+    orders: ORDERTOPIC
+
+order:
+  service:
+    base-url: ${ORDER_SERVICE_URL:http://localhost:9096}
+
+payment:
+  provider: stripe
+  stripe:
+    api-key: ${STRIPE_API_KEY:sk_test_placeholder}
+
+shared:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-vault-or-env}
+    expiration-minutes: 60
+  auth-validation:
+    url: ${AUTH_VALIDATION_URL:http://localhost:9090}
+    enabled: false
+

@@ -15,6 +15,10 @@ public class AuthValidationClient {
     }
 
     public void validateAuthorizationHeader(String authorizationHeader) {
+        if (!authValidationProperties.isEnabled()) {
+            return;
+        }
+
         try {
             restClient.get()
                     .uri(authValidationProperties.getBaseUrl() + "/users/token/validate")
@@ -28,5 +32,14 @@ public class AuthValidationClient {
             throw new IllegalArgumentException("Token is invalid, expired, or rotated");
         }
     }
-}
 
+    public boolean isTokenValid(String bearerToken) {
+        try {
+            String authorizationHeader = bearerToken.startsWith("Bearer ") ? bearerToken : "Bearer " + bearerToken;
+            validateAuthorizationHeader(authorizationHeader);
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+}
