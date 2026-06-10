@@ -21,7 +21,7 @@ services:
       - resto-net
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: postgres
     restart: unless-stopped
     environment:
@@ -70,6 +70,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: composite
       CONFIG_REPO_LOCATION: file:/config-repo
+      VAULT_ENABLED: "true"
       SPRING_CLOUD_VAULT_HOST: vault
       SPRING_CLOUD_VAULT_PORT: 8200
       SPRING_CLOUD_VAULT_SCHEME: http
@@ -118,7 +119,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-auth_resto_db}
@@ -131,6 +133,8 @@ services:
       postgres:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9090/actuator/health/readiness || exit 1"]
@@ -150,7 +154,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DB: restaurant_db
@@ -166,6 +171,8 @@ services:
         condition: service_healthy
       config-server:
         condition: service_healthy
+      discovery-service:
+        condition: service_healthy
       foodcatalogue:
         condition: service_healthy
     healthcheck:
@@ -179,14 +186,16 @@ services:
 
   foodcatalogue:
     build:
-      context: ./foodcatalogue
+      context: .
+      dockerfile: ./foodcatalogue/Dockerfile
     container_name: foodcatalogue
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       MYSQL_DB: foodcataloguedb
@@ -199,6 +208,8 @@ services:
       mysql:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9093/actuator/health/readiness || exit 1"]
@@ -228,7 +239,7 @@ services:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-datalog:/var/lib/zookeeper/log
     healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
+      test: ["CMD-SHELL", "timeout 5 bash -lc 'echo ls / | zookeeper-shell localhost:2181 | grep -q zookeeper'"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -264,7 +275,7 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server=localhost:9092 2>/dev/null | head -1 | grep -q 'localhost' || exit 1"]
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server=localhost:9092 2>/dev/null | grep -q 'kafka-broker:9092' || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -331,7 +342,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       # Cassandra connection
       CASSANDRA_HOST: cassandra
       CASSANDRA_PORT: 9042
@@ -347,6 +359,8 @@ services:
       cassandra:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
       kafka-broker:
         condition: service_healthy
@@ -372,8 +386,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
-      VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      VAULT_ENABLED: "true"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
       KAFKA_SECURITY_PROTOCOL: PLAINTEXT
       KAFKA_CONSUMER_GROUP_ID: payment-service-internal-group
@@ -385,6 +400,8 @@ services:
       kafka-broker:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
       order-service:
         condition: service_healthy
@@ -411,7 +428,8 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
       VAULT_ENABLED: "false"
-      EUREKA_ENABLED: "false"
+      EUREKA_ENABLED: "true"
+      EUREKA_SERVER_URL: http://discovery-service:8761/eureka
       KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
       KAFKA_SECURITY_PROTOCOL: PLAINTEXT
       KAFKA_CONSUMER_GROUP_ID: payment-service-external-group
@@ -424,6 +442,8 @@ services:
       kafka-broker:
         condition: service_healthy
       config-server:
+        condition: service_healthy
+      discovery-service:
         condition: service_healthy
       order-service:
         condition: service_healthy

@@ -7,6 +7,10 @@ spring:
   profiles:
     active: composite
   cloud:
+    vault:
+      # Disable the VaultHealthIndicator by default (local dev without Vault running).
+      # Set VAULT_ENABLED=true in Docker where the vault container is present.
+      enabled: ${VAULT_ENABLED:false}
     config:
       server:
         composite:
